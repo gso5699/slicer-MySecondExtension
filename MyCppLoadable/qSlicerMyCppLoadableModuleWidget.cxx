@@ -17,12 +17,14 @@
 
 // Qt includes
 #include <QDebug>
+#include <QPushButton>
 
 // Slicer includes
 #include "qSlicerMyCppLoadableModuleWidget.h"
 #include "ui_qSlicerMyCppLoadableModuleWidget.h"
+#include "vtkSlicerMyCppLoadableLogic.h"
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 class qSlicerMyCppLoadableModuleWidgetPrivate: public Ui_qSlicerMyCppLoadableModuleWidget
 {
 public:
@@ -58,4 +60,25 @@ void qSlicerMyCppLoadableModuleWidget::setup()
   Q_D(qSlicerMyCppLoadableModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
+
+  // add test button
+  QPushButton* testButton = new QPushButton("Run Logic Test");
+  this->layout()->addWidget(testButton);
+
+  connect(testButton, &QPushButton::clicked,
+          this, &qSlicerMyCppLoadableModuleWidget::onRunTestButtonClicked);
+
+  
+}
+
+
+void qSlicerMyCppLoadableModuleWidget::onRunTestButtonClicked()
+{
+  auto* myLogic = vtkSlicerMyCppLoadableLogic::SafeDownCast(this->logic());
+  if (!myLogic)
+  {
+    qWarning() << "Logic pointer is null.";
+    return;
+  }
+  myLogic->RunMyCppLogic();
 }

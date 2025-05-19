@@ -44,6 +44,7 @@ protected:
   QScopedPointer<qSlicerMyCppLoadableModuleWidgetPrivate> d_ptr;
 
   void setup() override;
+  void onRunTestButtonClicked();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerMyCppLoadableModuleWidget);

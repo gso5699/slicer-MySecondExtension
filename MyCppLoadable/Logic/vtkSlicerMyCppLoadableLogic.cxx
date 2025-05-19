@@ -81,3 +81,10 @@ void vtkSlicerMyCppLoadableLogic
 ::OnMRMLSceneNodeRemoved(vtkMRMLNode* vtkNotUsed(node))
 {
 }
+
+
+// My test logic
+void vtkSlicerMyCppLoadableLogic::RunMyCppLogic()
+{
+  std::cout << "[RunMyCppLogic] Called from widget button!" << std::endl;
+}

@@ -43,6 +43,7 @@ public:
   static vtkSlicerMyCppLoadableLogic *New();
   vtkTypeMacro(vtkSlicerMyCppLoadableLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  void RunMyCppLogic();
 
 protected:
   vtkSlicerMyCppLoadableLogic();
