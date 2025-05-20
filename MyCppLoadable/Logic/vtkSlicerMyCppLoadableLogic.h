@@ -33,6 +33,8 @@
 #include <cstdlib>
 
 #include "vtkSlicerMyCppLoadableModuleLogicExport.h"
+#include <QString>
+
 
 
 class VTK_SLICER_MYCPPLOADABLE_MODULE_LOGIC_EXPORT vtkSlicerMyCppLoadableLogic :
@@ -42,8 +44,11 @@ public:
 
   static vtkSlicerMyCppLoadableLogic *New();
   vtkTypeMacro(vtkSlicerMyCppLoadableLogic, vtkSlicerModuleLogic);
+
   void PrintSelf(ostream& os, vtkIndent indent) override;
   void RunMyCppLogic();
+
+  bool LoadPNGAsScalarVolumeNode(const QString& filePath, vtkMRMLScene* scene);
 
 protected:
   vtkSlicerMyCppLoadableLogic();
@@ -55,6 +60,7 @@ protected:
   void UpdateFromMRMLScene() override;
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
+
 private:
 
   vtkSlicerMyCppLoadableLogic(const vtkSlicerMyCppLoadableLogic&); // Not implemented

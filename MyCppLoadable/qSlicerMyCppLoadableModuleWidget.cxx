@@ -1,84 +1,83 @@
-/*==============================================================================
-
-  Program: 3D Slicer
-
-  Portions (c) Copyright Brigham and Women's Hospital (BWH) All Rights Reserved.
-
-  See COPYRIGHT.txt
-  or http://www.slicer.org/copyright/copyright.txt for details.
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-
-==============================================================================*/
-
-// Qt includes
-#include <QDebug>
-#include <QPushButton>
-
-// Slicer includes
 #include "qSlicerMyCppLoadableModuleWidget.h"
 #include "ui_qSlicerMyCppLoadableModuleWidget.h"
-#include "vtkSlicerMyCppLoadableLogic.h"
 
-// -----------------------------------------------------------------------------
-class qSlicerMyCppLoadableModuleWidgetPrivate: public Ui_qSlicerMyCppLoadableModuleWidget
+#include "vtkSlicerMyCppLoadableLogic.h"
+#include <QDebug>
+#include <QFileDialog>
+
+
+// Private class that holds UI pointers
+class qSlicerMyCppLoadableModuleWidgetPrivate : public Ui_qSlicerMyCppLoadableModuleWidget
 {
 public:
-  qSlicerMyCppLoadableModuleWidgetPrivate();
+  qSlicerMyCppLoadableModuleWidgetPrivate() = default;
 };
 
-//-----------------------------------------------------------------------------
-// qSlicerMyCppLoadableModuleWidgetPrivate methods
-
-//-----------------------------------------------------------------------------
-qSlicerMyCppLoadableModuleWidgetPrivate::qSlicerMyCppLoadableModuleWidgetPrivate()
+// Constructor
+qSlicerMyCppLoadableModuleWidget::qSlicerMyCppLoadableModuleWidget(QWidget* parent)
+  : Superclass(parent)
+  , d_ptr(new qSlicerMyCppLoadableModuleWidgetPrivate)
 {
 }
 
-//-----------------------------------------------------------------------------
-// qSlicerMyCppLoadableModuleWidget methods
+// Destructor
+qSlicerMyCppLoadableModuleWidget::~qSlicerMyCppLoadableModuleWidget() = default;
 
-//-----------------------------------------------------------------------------
-qSlicerMyCppLoadableModuleWidget::qSlicerMyCppLoadableModuleWidget(QWidget* _parent)
-  : Superclass( _parent )
-  , d_ptr( new qSlicerMyCppLoadableModuleWidgetPrivate )
-{
-}
-
-//-----------------------------------------------------------------------------
-qSlicerMyCppLoadableModuleWidget::~qSlicerMyCppLoadableModuleWidget()
-{
-}
-
-//-----------------------------------------------------------------------------
+// Setup UI and connect signals
 void qSlicerMyCppLoadableModuleWidget::setup()
 {
   Q_D(qSlicerMyCppLoadableModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
 
-  // add test button
-  QPushButton* testButton = new QPushButton("Run Logic Test");
-  this->layout()->addWidget(testButton);
+   // Setup volume selector properties if needed (optional if done in UI)
+  d->VolumeSelector->setNodeTypes(QStringList() << "vtkMRMLScalarVolumeNode");
+  d->VolumeSelector->setMRMLScene(this->mrmlScene());
 
-  connect(testButton, &QPushButton::clicked,
+  // Connect the combo box signal to your slot
+  connect(d->VolumeSelector, SIGNAL(currentNodeChanged(vtkMRMLNode*)),
+          this, SLOT(onVolumeNodeSelected(vtkMRMLNode*)));
+
+  // Connect test button clicked signal to your slot
+  connect(d->testButton, &QPushButton::clicked,
           this, &qSlicerMyCppLoadableModuleWidget::onRunTestButtonClicked);
 
-  
 }
 
+void qSlicerMyCppLoadableModuleWidget::setMRMLScene(vtkMRMLScene* scene)
+{
+  this->Superclass::setMRMLScene(scene);
+  Q_D(qSlicerMyCppLoadableModuleWidget);
+  if (d->VolumeSelector)
+  {
+    d->VolumeSelector->setMRMLScene(scene);
+  }
+}
 
+// Slot for volume node selection change
+void qSlicerMyCppLoadableModuleWidget::onVolumeNodeSelected(vtkMRMLNode* node)
+{
+  if (node)
+  {
+    qDebug() << "Selected volume node:" << node->GetName();
+  }
+  else
+  {
+    qDebug() << "No volume node selected";
+  }
+}
+
+// Slot for test button clicked
 void qSlicerMyCppLoadableModuleWidget::onRunTestButtonClicked()
 {
-  auto* myLogic = vtkSlicerMyCppLoadableLogic::SafeDownCast(this->logic());
+  vtkSlicerMyCppLoadableLogic* myLogic =
+    vtkSlicerMyCppLoadableLogic::SafeDownCast(this->logic());
+
   if (!myLogic)
   {
     qWarning() << "Logic pointer is null.";
     return;
   }
+
   myLogic->RunMyCppLogic();
 }

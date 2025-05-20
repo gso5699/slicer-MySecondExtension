@@ -29,6 +29,11 @@
 // STD includes
 #include <cassert>
 
+#include <vtkMRMLScalarVolumeNode.h>
+#include <vtkMRMLVolumeArchetypeStorageNode.h>
+#include <vtkNew.h>
+#include <QDebug>
+
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerMyCppLoadableLogic);
 
