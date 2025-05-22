@@ -5,16 +5,25 @@
 #include <qMRMLSliceWidget.h>
 #include <qMRMLSliceView.h>
 
-
+#include <QDebug>
+#include <QFileDialog>
 
 
 #include "vtkSlicerMyCppLoadableLogic.h"
-#include <QDebug>
-#include <QFileDialog>
+
 #include <vtkPointData.h>
 #include <vtkMRMLScalarVolumeNode.h>
 #include <vtkRenderWindow.h>
 #include <vtkMRMLScene.h>
+
+#include <vtkMRMLSliceNode.h>
+#include <vtkMRMLSliceLogic.h>
+#include <vtkTransform.h>
+#include <vtkMatrix4x4.h>
+#include <vtkImageData.h>
+#include <vtkSmartPointer.h>
+#include <vtkAbstractTransform.h>
+#include <vtkMRMLScalarVolumeNode.h>
 
 
 // Private class that holds UI pointers
@@ -98,13 +107,6 @@ void qSlicerMyCppLoadableModuleWidget::onRunTestButtonClicked()
   myLogic->RunMyCppLogic();
 }
 
-// void qSlicerMyCppLoadableModuleWidget::onDrawButtonClicked()
-// {
-//   vtkSlicerMyCppLoadableLogic* myLogic =
-//     vtkSlicerMyCppLoadableLogic::SafeDownCast(this->logic());
-  
-//   myLogic->RunPaintLogic();  
-// }
 
 void qSlicerMyCppLoadableModuleWidget::onDrawButtonClicked()
 {
@@ -150,7 +152,6 @@ void qSlicerMyCppLoadableModuleWidget::onDrawButtonClicked()
     if (eventId == vtkCommand::LeftButtonPressEvent)
     {
       int* pos = interactor->GetEventPosition();
-      qDebug() << "Mouse clicked at: " << pos[0] << pos[1];
       self->PaintAtPosition(pos[0], pos[1]);
     }
   });
@@ -166,32 +167,77 @@ void qSlicerMyCppLoadableModuleWidget::PaintAtPosition(int x, int y)
     qWarning() << "paintImage is not initialized.";
     return;
   }
-
-  // Get image dimensions
-  int* dims = this->paintImage->GetDimensions();
-  qDebug() << "Image dimensions:" << dims[0] << dims[1] << dims[2];
-
-  // Check if x, y are inside the image bounds
-  if (x < 0 || x >= dims[0] || y < 0 || y >= dims[1])
+  if (!this->volumeNode)
   {
-    qWarning() << "Paint position out of bounds:" << x << y;
+    qWarning() << "volumeNode is not set.";
     return;
   }
 
-  // Set pixel at (x, y) to 255 (white) in the first scalar component
-  unsigned char* pixel = static_cast<unsigned char*>(this->paintImage->GetScalarPointer(x, y, 0));
+  // Get slice widget and logic
+  // Get slice widget and logic
+  qMRMLSliceWidget* sliceWidget = qSlicerApplication::application()->layoutManager()->sliceWidget("Red");
+  vtkMRMLSliceLogic* sliceLogic = sliceWidget->sliceLogic();
+  vtkMRMLSliceNode* sliceNode = sliceLogic->GetSliceNode();
+
+  // Get the XY to RAS matrix
+  vtkMatrix4x4* xyToRAS = sliceNode->GetXYToRAS();
+
+  // Convert display (x, y) to RAS coordinates
+  double ras[4] = {0, 0, 0, 1};
+  double xy[4] = { static_cast<double>(x), static_cast<double>(y), 0.0, 1.0 };
+  xyToRAS->MultiplyPoint(xy, ras);
+
+  // Convert RAS to IJK using volume matrix
+  // vtkSmartPointer<vtkMatrix4x4> rasToIJK = vtkSmartPointer<vtkMatrix4x4>::New();
+  // this->volumeNode->GetRASToIJKMatrix(rasToIJK);
+
+  // double ijkDouble[4] = {0, 0, 0, 1};
+  // rasToIJK->MultiplyPoint(ras, ijkDouble);
+  double volumeOrigin[3];
+  this->volumeNode->GetOrigin(volumeOrigin);
+
+  double adjustedRAS[4] = {
+    ras[0] - volumeOrigin[0],
+    ras[1] - volumeOrigin[1],
+    ras[2] - volumeOrigin[2],
+    1.0
+  };
+
+  // Convert adjusted RAS to IJK using volume matrix
+  vtkSmartPointer<vtkMatrix4x4> rasToIJK = vtkSmartPointer<vtkMatrix4x4>::New();
+  this->volumeNode->GetRASToIJKMatrix(rasToIJK);
+
+  double ijkDouble[4] = {0, 0, 0, 1};
+  rasToIJK->MultiplyPoint(adjustedRAS, ijkDouble);
+
+  // Round to nearest voxel indices
+  int ijk[3] = {
+    static_cast<int>(std::round(ijkDouble[0])),
+    static_cast<int>(std::round(ijkDouble[1])),
+    static_cast<int>(std::round(ijkDouble[2]))
+  };
+
+  qDebug() << "Mouse clicked at:" << x << y
+          << "| IJK:" << ijk[0] << ijk[1] << ijk[2];
+
+  int* dims = this->paintImage->GetDimensions();
+
+  // Check IJK voxel bounds (not RAS!)
+  if (ijk[0] < 0 || ijk[0] >= dims[0] ||
+      ijk[1] < 0 || ijk[1] >= dims[1] ||
+      ijk[2] < 0 || ijk[2] >= dims[2])
+  {
+    qWarning() << "Paint position out of bounds:" << ijk[0] << ijk[1] << ijk[2];
+    return;
+  }
+
+  // Write to image
+  unsigned char* pixel = static_cast<unsigned char*>(this->paintImage->GetScalarPointer(ijk[0], ijk[1], ijk[2]));
   if (pixel)
   {
-    *pixel = 255;
-    // Notify that the image data has changed
-    this->paintImage->Modified();
+    *pixel = 255; // Set to white
+    this->paintImage->Modified(); // Notify pipeline
+    qDebug() << "Painted at:" << ijk[0] << ijk[1] << ijk[2];
+  }
 
-    // Optionally, request a scene update so viewers refresh
-    // this->GetMRMLScene()->Modified();
-  }
-  else
-  {
-    qWarning() << "Failed to get pixel pointer at" << x << y;
-  }
 }
-
