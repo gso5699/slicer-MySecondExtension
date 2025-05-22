@@ -47,6 +47,7 @@ public:
 
   void PrintSelf(ostream& os, vtkIndent indent) override;
   void RunMyCppLogic();
+  void RunPaintLogic();
 
   bool LoadPNGAsScalarVolumeNode(const QString& filePath, vtkMRMLScene* scene);
 

@@ -18,6 +18,7 @@
 // MyCppLoadable Logic includes
 #include "vtkSlicerMyCppLoadableLogic.h"
 
+
 // MRML includes
 #include <vtkMRMLScene.h>
 
@@ -25,10 +26,11 @@
 #include <vtkIntArray.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkImageData.h>
+
 
 // STD includes
 #include <cassert>
-
 #include <vtkMRMLScalarVolumeNode.h>
 #include <vtkMRMLVolumeArchetypeStorageNode.h>
 #include <vtkNew.h>
@@ -92,4 +94,19 @@ void vtkSlicerMyCppLoadableLogic
 void vtkSlicerMyCppLoadableLogic::RunMyCppLogic()
 {
   std::cout << "[RunMyCppLogic] Called from widget button!" << std::endl;
+}
+
+void vtkSlicerMyCppLoadableLogic::RunPaintLogic()
+{
+  std::cout << "[RunPaintLogic] Called from widget button!" << std::endl;
+  vtkSmartPointer<vtkMRMLScalarVolumeNode> volumeNode = vtkSmartPointer<vtkMRMLScalarVolumeNode>::New();
+
+  volumeNode->SetName("PaintVolume");
+  vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
+  imageData->SetDimensions(256, 256, 1);
+  imageData->AllocateScalars(VTK_UNSIGNED_CHAR, 1);  // 1 channel, 8-bit unsigned
+  volumeNode->SetAndObserveImageData(imageData);
+  volumeNode->SetSpacing(1.0, 1.0, 1.0);
+  volumeNode->SetOrigin(0.0, 0.0, 0.0);
+  this->GetMRMLScene()->AddNode(volumeNode);
 }
